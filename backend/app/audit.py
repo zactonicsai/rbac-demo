@@ -4,6 +4,7 @@ Comprehensive Audit Logging
 Logs every data access, modification, and denied access attempt.
 All CRUD operations and security events are recorded.
 """
+import json
 from datetime import datetime
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,10 +45,10 @@ async def log_event(
         ) VALUES (
             :ts, :uid, :uname, :org, :clearance,
             :action, :rtype, :rid, :rtitle, :fname,
-            :class_req, :comp_req,
+            :class_req, :comp_req::text[],
             :allowed, :denial, :old_val, :new_val,
             :ip, :ua, :path, :method,
-            :session, :details
+            :session, :details::jsonb
         )
     """)
 
@@ -73,7 +74,7 @@ async def log_event(
         "rtitle": record_title,
         "fname": field_name,
         "class_req": classification_required,
-        "comp_req": compartments_required,
+        "comp_req": compartments_required if compartments_required else None,
         "allowed": was_allowed,
         "denial": denial_reason,
         "old_val": old_value,
@@ -83,7 +84,7 @@ async def log_event(
         "path": request_path,
         "method": request_method,
         "session": session_id,
-        "details": str(details) if details else None,
+        "details": json.dumps(details) if details else None,
     })
     await db.commit()
 
