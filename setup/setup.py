@@ -153,7 +153,7 @@ def setup_federation():
         "storeToken": True,
         "firstBrokerLoginFlowAlias": first_broker_flow,
         "config": {
-            "authorizationUrl": f"{BRAVO_EXTERNAL_URL}/realms/agency-bravo/protocol/openid-connect/auth",
+            "authorizationUrl": f"{BRAVO_URL}/realms/agency-bravo/protocol/openid-connect/auth",
             "tokenUrl": f"{BRAVO_URL}/realms/agency-bravo/protocol/openid-connect/token",
             "userInfoUrl": f"{BRAVO_URL}/realms/agency-bravo/protocol/openid-connect/userinfo",
             "jwksUrl": f"{BRAVO_URL}/realms/agency-bravo/protocol/openid-connect/certs",
@@ -165,7 +165,7 @@ def setup_federation():
             "clientSecret": "federation-secret-key",
             "clientAuthMethod": "client_secret_post",
             # FIX: Include "roles" scope so Bravo's token includes realm_access.roles
-            "defaultScope": "openid profile email roles security-attributes",
+            "defaultScope": "openid security-attributes",
             "syncMode": "FORCE",
             "validateSignature": "false",
             # Disable user info to avoid internal/external URL mismatch

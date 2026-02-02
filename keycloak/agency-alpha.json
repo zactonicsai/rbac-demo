@@ -75,6 +75,65 @@
     "email",
     "security-attributes"
   ],
+  "identityProviders": [
+    {
+      "alias": "agency-bravo",
+      "displayName": "Login via Agency Bravo",
+      "providerId": "keycloak-oidc",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": true,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "clientId": "alpha-federation",
+        "clientSecret": "federation-secret-key",
+        "authorizationUrl": "http://localhost:8081/realms/agency-bravo/protocol/openid-connect/auth",
+        "tokenUrl": "http://localhost:8081/realms/agency-bravo/protocol/openid-connect/token",
+        "userInfoUrl": "http://localhost:8081/realms/agency-bravo/protocol/openid-connect/userinfo",
+        "jwksUrl": "http://localhost:8081/realms/agency-bravo/protocol/openid-connect/certs",
+        "logoutUrl": "http://localhost:8081/realms/agency-bravo/protocol/openid-connect/logout",
+        "issuer": "http://localhost:8081/realms/agency-bravo",
+        "defaultScope": "openid security-attributes",
+        "validateSignature": "true",
+        "useJwksUrl": "true",
+        "syncMode": "FORCE",
+        "clientAuthMethod": "client_secret_post",
+        "pkceEnabled": "false"
+      }
+    }
+  ],
+  "identityProviderMappers": [
+    {
+      "name": "bravo-clearance-level",
+      "identityProviderAlias": "agency-bravo",
+      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+      "config": {
+        "claim": "clearance_level",
+        "user.attribute": "clearance_level",
+        "syncMode": "INHERIT"
+      }
+    },
+    {
+      "name": "bravo-compartments",
+      "identityProviderAlias": "agency-bravo",
+      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+      "config": {
+        "claim": "compartments",
+        "user.attribute": "compartments",
+        "syncMode": "INHERIT"
+      }
+    },
+    {
+      "name": "bravo-organization",
+      "identityProviderAlias": "agency-bravo",
+      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+      "config": {
+        "claim": "organization",
+        "user.attribute": "organization",
+        "syncMode": "INHERIT"
+      }
+    }
+  ],
   "clients": [
     {
       "clientId": "frontend-app",
