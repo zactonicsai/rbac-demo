@@ -130,32 +130,6 @@ services:
       postgres-app:
         condition: service_healthy
 
-  # ─── Backend API (FastAPI) ───────────────────────────────────────────
-  backend:
-    build: ./backend
-    environment:
-      DATABASE_URL: postgresql+asyncpg://appuser:apppass@postgres-app:5432/securedata
-      DATABASE_URL_SYNC: postgresql://appuser:apppass@postgres-app:5432/securedata
-      KEYCLOAK_URL: http://keycloak-alpha:8080
-      KEYCLOAK_REALM: agency-alpha
-      KEYCLOAK_CLIENT_ID: backend-api
-      CORS_ORIGINS: http://localhost:3000
-    ports:
-      - "8000:8000"
-    depends_on:
-      postgres-app:
-        condition: service_healthy
-      keycloak-alpha:
-        condition: service_healthy
-
-  # ─── Frontend (React SPA via Nginx) ──────────────────────────────────
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-
   # ─── OpenSearch (Single-Node) ────────────────────────────────────────
   opensearch:
     image: opensearchproject/opensearch:latest
@@ -175,6 +149,18 @@ services:
       retries: 30
       start_period: 30s
 
+  # ─── OpenSearch Index Setup (runs once after OpenSearch is ready) ────
+  opensearch-setup:
+    build: ./opensearch-setup
+    environment:
+      OPENSEARCH_HOST: opensearch
+      OPENSEARCH_PORT: "9200"
+      OPENSEARCH_INDEX: secure-documents
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    restart: "no"
+
   # ─── OpenSearch Dashboards ───────────────────────────────────────────
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:latest
@@ -186,6 +172,40 @@ services:
     depends_on:
       opensearch:
         condition: service_healthy
+
+  # ─── Backend API (FastAPI) ───────────────────────────────────────────
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://appuser:apppass@postgres-app:5432/securedata
+      DATABASE_URL_SYNC: postgresql://appuser:apppass@postgres-app:5432/securedata
+      KEYCLOAK_URL: http://keycloak-alpha:8080
+      KEYCLOAK_REALM: agency-alpha
+      KEYCLOAK_CLIENT_ID: backend-api
+      CORS_ORIGINS: http://localhost:3000
+      # OpenSearch configuration
+      OPENSEARCH_HOST: opensearch
+      OPENSEARCH_PORT: "9200"
+      OPENSEARCH_INDEX: secure-documents
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres-app:
+        condition: service_healthy
+      keycloak-alpha:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+      opensearch-setup:
+        condition: service_completed_successfully
+
+  # ─── Frontend (React SPA via Nginx) ──────────────────────────────────
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
 
   # ─── Search App (RBAC & Cell-Level Security Demo) ────────────────────
   search-app:

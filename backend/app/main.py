@@ -5,6 +5,7 @@ Federated OIDC authentication via Keycloak with:
 - Role-based access control (RBAC)
 - Classification-based record access
 - Cell-level security with need-to-know compartments
+- OpenSearch integration with security filtering
 - Comprehensive audit logging
 """
 from fastapi import FastAPI, Request
@@ -12,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.config import settings
-from app.routes import records, admin, audit_routes
+from app.routes import records, admin, audit_routes, search
 
 
 @asynccontextmanager
@@ -22,6 +23,12 @@ async def lifespan(app: FastAPI):
     print(f"  Keycloak: {settings.KEYCLOAK_URL}")
     print(f"  Realm: {settings.KEYCLOAK_REALM}")
     print("=" * 50)
+    
+    # Check OpenSearch connection on startup
+    from app.opensearch_client import check_opensearch_health
+    os_health = await check_opensearch_health()
+    print(f"  OpenSearch: {os_health.get('status', 'unknown')}")
+    
     yield
     print("API Shutting down")
 
@@ -35,9 +42,10 @@ Demonstrates federated OIDC authentication with:
 - **Cell-Level Security**: Individual fields have their own classification + compartments
 - **Need-to-Know**: Compartment-based access (PROJECT_ALPHA, PROJECT_OMEGA, OPERATION_DELTA)
 - **Federation**: Two Keycloak instances representing partner organizations
+- **OpenSearch**: Full-text search with security-filtered results
 - **Audit Trail**: Every access attempt is logged
     """,
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
@@ -54,6 +62,7 @@ app.add_middleware(
 app.include_router(records.router)
 app.include_router(admin.router)
 app.include_router(audit_routes.router)
+app.include_router(search.router)  # OpenSearch routes
 
 
 @app.get("/", tags=["Health"])
@@ -66,13 +75,23 @@ async def root():
             "records": "/api/records",
             "admin": "/api/admin",
             "audit": "/api/audit",
+            "search": "/api/search",
         },
     }
 
 
 @app.get("/health", tags=["Health"])
 async def health():
-    return {"status": "healthy"}
+    from app.opensearch_client import check_opensearch_health
+    os_health = await check_opensearch_health()
+    
+    return {
+        "status": "healthy",
+        "services": {
+            "api": "healthy",
+            "opensearch": os_health.get("status", "unknown"),
+        }
+    }
 
 
 @app.get("/api/auth/me", tags=["Auth"])
